@@ -1,8 +1,13 @@
 import cv2
 import numpy as np
+from datetime import datetime
+import os
 
 PASSWORD_LENGTH = 16
 IMAGE_SIZE = 750
+IMAGE_FILETYPE = '.jpg'
+IMAGE_LOCATION = 'C:/Users/nmk25/.vscode/Projects/imagePassGen'
+IMAGE_DESTINATION = 'C:/Users/nmk25/.vscode/Projects/imagePassGen/passwords'
 
 #parse through the greyscale image and create a dictionary of pixel values and their corresponding ASCII values
 def asciiScramble(img, row: int, col: int) -> dict:
@@ -12,7 +17,7 @@ def asciiScramble(img, row: int, col: int) -> dict:
     for i in range(row):
         for j in range(col):             
             pixel_value = img[i,j]
-            if pixel_value not in dict:         
+            if pixel_value not in dict:
                 dict[pixel_value] = ascii_enum
                 ascii_enum += 1
                 if ascii_enum == 126:
@@ -91,13 +96,33 @@ def resizeImage(gimg, cimg, row: int, col: int) -> tuple:
         col = IMAGE_SIZE
 
     return gimg, cimg, row, col
+
+# Get the image from the camera
+def getWebcamImage() -> str:
+    camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)                                         # Open the camera
+    ret, frame = camera.read()                                                          # Read the camera feed
+
+    destination = input("password destination (ex. gmail, facebook, etc.): ")
+    time = datetime.today().strftime('%Y-%m-%d')
+
+    filename = destination + "_" + time + IMAGE_FILETYPE                                # Create the filename
+
+    cv2.imwrite(filename, frame)                                                        # Save the image to the directory
+    camera.release()                                                                    # Release the camera
+
+    return filename
     
 
 if __name__ == "__main__":
-    image = ''                                      # Path to the image or image name in directory
-    grey_img = cv2.imread(image, 0)                 # Load the image in greyscale
-    color_img = cv2.imread(image, 1)                # Load the image in color
-    rows, cols = grey_img.shape                     # Get the image dimensions
+
+    image_path = ''                                             # Path to the image or image name in directory
+
+    if image_path == '':                                        # If no image is provided, use the camera
+        image_path = getWebcamImage()
+
+    grey_img = cv2.imread(image_path, 0)                        # Load the image in greyscale
+    color_img = cv2.imread(image_path, 1)                       # Load the image in color
+    rows, cols = grey_img.shape                                 # Get the image dimensions
 
     grey_img, color_img, rows, cols = resizeImage(grey_img, color_img, rows, cols)
 
@@ -108,3 +133,4 @@ if __name__ == "__main__":
 
     print(passord_bank[rows * cols % len(passord_bank)])        # choose a password from password_bank based on the number of pixels in the image
     
+    os.rename(IMAGE_LOCATION + '/' + image_path, IMAGE_DESTINATION + '/' + image_path)    # Move the file to the destination folder
